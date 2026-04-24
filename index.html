@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>JADIS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400&family=Cormorant+Garamond:ital,wght@0,300;1,300&display=swap" rel="stylesheet" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --white: #FFFFFF;
+      --olive-dark: #0C2620;
+      --olive-mid: #1a3d34;
+      --olive-light: #2A5C50;
+      --olive-pale: #EFF3E8;
+      --gold: #C9A84C;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    body {
+      background: var(--white);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      position: relative;
+    }
+
+    /* ── Subtle background breath ── */
+    .bg-glow {
+      position: fixed;
+      width: 600px;
+      height: 600px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(139,157,106,0.06) 0%, transparent 70%);
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      animation: breathe 6s ease-in-out infinite;
+    }
+    @keyframes breathe {
+      0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; }
+      50% { transform: translate(-50%, -50%) scale(1.12); opacity: 1; }
+    }
+
+    /* ── Tiny Islamic geometric corners (micro gold details) ── */
+    .corner {
+      position: fixed;
+      width: 48px;
+      height: 48px;
+      opacity: 0;
+      animation: cornerFade 0.8s ease forwards;
+    }
+    .corner.tl { top: 28px; left: 28px; animation-delay: 5s; }
+    .corner.tr { top: 28px; right: 28px; animation-delay: 5.1s; transform: rotate(90deg); }
+    .corner.bl { bottom: 28px; left: 28px; animation-delay: 5.2s; transform: rotate(270deg); }
+    .corner.br { bottom: 28px; right: 28px; animation-delay: 5.3s; transform: rotate(180deg); }
+    @keyframes cornerFade { to { opacity: 1; } }
+
+    /* ── Scene container ── */
+    .scene {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0;
+      position: relative;
+    }
+
+    /* ── Arabic word ── */
+    .word-stage {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 160px;
+      overflow: visible;
+    }
+
+    .arabic-word {
+      font-family: 'Amiri', serif;
+      font-size: clamp(80px, 14vw, 140px);
+      color: var(--olive-dark);
+      direction: rtl;
+      line-height: 1;
+      letter-spacing: 0.02em;
+      position: relative;
+      /* Start invisible */
+      opacity: 0;
+    }
+
+    /* White curtain that slides left → right, revealing text (RTL writing feel) */
+    .word-curtain {
+      position: absolute;
+      top: -10px;
+      left: -20px;
+      right: -20px;
+      bottom: -10px;
+      background: var(--white);
+      transform-origin: right center;
+      transform: scaleX(1);
+      z-index: 2;
+    }
+
+    /* The quill pen tip that rides along the curtain edge */
+    .quill-tip {
+      position: absolute;
+      right: -20px;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 3;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s;
+    }
+
+    /* Ink drip trace (thin line left behind by quill) */
+    .ink-trace {
+      position: absolute;
+      top: 50%;
+      right: -20px;
+      height: 1px;
+      width: 0;
+      background: linear-gradient(to left, rgba(58,78,36,0.12), transparent);
+      transform: translateY(-50%);
+      z-index: 1;
+    }
+
+    /* Animation trigger classes added by JS */
+    .word-stage.animating .arabic-word {
+      opacity: 1;
+      transition: opacity 0s;
+    }
+    .word-stage.animating .word-curtain {
+      animation: curtainReveal 2.8s cubic-bezier(0.76, 0, 0.24, 1) forwards;
+    }
+    .word-stage.animating .quill-tip {
+      opacity: 1;
+      animation: quillMove 2.8s cubic-bezier(0.76, 0, 0.24, 1) forwards;
+    }
+    .word-stage.animating .ink-trace {
+      animation: inkTrace 2.8s cubic-bezier(0.76, 0, 0.24, 1) forwards;
+    }
+
+    /* Curtain shrinks from right → left (simulates RTL writing) */
+    @keyframes curtainReveal {
+      0% { transform: scaleX(1); }
+      100% { transform: scaleX(0); }
+    }
+
+    /* Quill tip moves from right edge toward left edge */
+    @keyframes quillMove {
+      0%   { right: calc(100% - 20px); opacity: 1; }
+      98%  { right: -20px; opacity: 1; }
+      100% { right: -20px; opacity: 0; }
+    }
+
+    /* Ink trace widens as quill moves */
+    @keyframes inkTrace {
+      0%   { width: 0; right: calc(100% - 20px); }
+      100% { width: calc(100% + 40px); right: -20px; }
+    }
+
+    /* ── Small ink drop that appears when quill lifts ── */
+    .ink-drop {
+      position: absolute;
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: var(--olive-dark);
+      opacity: 0;
+      top: 50%;
+      left: -24px;
+      transform: translateY(-50%);
+    }
+    .word-stage.done .ink-drop {
+      animation: inkDrop 0.6s ease forwards;
+    }
+    @keyframes inkDrop {
+      0%   { opacity: 0.8; transform: translateY(-50%) scale(1); }
+      100% { opacity: 0; transform: translateY(8px) scale(0.2); }
+    }
+
+    /* ── Subtitle ── */
+    .subtitle {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.72rem;
+      font-weight: 300;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--olive-light);
+      opacity: 0;
+      margin-top: 4px;
+      animation: none;
+    }
+    .subtitle.visible {
+      animation: fadeUp 0.9s ease forwards;
+    }
+
+    /* ── Gold micro-divider ── */
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 28px;
+      opacity: 0;
+    }
+    .divider.visible {
+      animation: fadeUp 0.7s ease forwards;
+    }
+    .divider-line {
+      width: 40px;
+      height: 1px;
+      background: var(--gold);
+      opacity: 0.5;
+    }
+    .divider-gem {
+      width: 5px;
+      height: 5px;
+      background: var(--gold);
+      transform: rotate(45deg);
+      opacity: 0.7;
+    }
+
+    /* ── French verse ── */
+    .verse-text {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(0.95rem, 2.2vw, 1.15rem);
+      font-style: italic;
+      font-weight: 300;
+      color: var(--olive-mid);
+      letter-spacing: 0.04em;
+      text-align: center;
+      opacity: 0;
+      margin-top: 6px;
+      max-width: 420px;
+    }
+    .verse-text.visible {
+      animation: fadeUp 1s ease forwards;
+    }
+    .verse-ref {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.68rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--gold);
+      opacity: 0;
+      margin-top: 4px;
+      text-align: center;
+    }
+    .verse-ref.visible {
+      animation: fadeUp 0.8s ease 0.15s forwards;
+    }
+
+    /* ── Start button ── */
+    .start-wrap {
+      margin-top: 28px;
+      opacity: 0;
+    }
+    .start-wrap.visible {
+      animation: fadeUp 0.8s ease 0.1s forwards;
+    }
+    .start-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.82rem;
+      font-weight: 400;
+      letter-spacing: 0.18em;
+      text-transform: lowercase;
+      color: var(--olive-dark);
+      text-decoration: none;
+      cursor: pointer;
+      padding: 10px 0;
+      position: relative;
+      background: none;
+      border: none;
+      transition: color 0.3s ease;
+    }
+    .start-btn::after {
+      content: '';
+      position: absolute;
+      bottom: 6px;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: var(--olive-light);
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 0.4s ease;
+    }
+    .start-btn:hover { color: var(--olive-mid); }
+    .start-btn:hover::after { transform: scaleX(1); }
+
+    .start-arrow {
+      display: inline-block;
+      transition: transform 0.3s ease;
+    }
+    .start-btn:hover .start-arrow { transform: translateX(3px); }
+
+    /* ── Animations ── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Fade out whole scene when clicking start ── */
+    body.leaving {
+      animation: leaveAnim 0.7s ease forwards;
+    }
+    @keyframes leaveAnim {
+      to { opacity: 0; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Breath glow -->
+  <div class="bg-glow"></div>
+
+  <!-- Gold corner ornaments (micro-details) -->
+  <svg class="corner tl" viewBox="0 0 48 48" fill="none">
+    <path d="M4 44 L4 4 L44 4" stroke="#C9A84C" stroke-width="1" stroke-linecap="round"/>
+    <circle cx="4" cy="4" r="2" fill="#C9A84C" opacity="0.6"/>
+    <path d="M4 20 L20 4" stroke="#C9A84C" stroke-width="0.5" opacity="0.4"/>
+  </svg>
+  <svg class="corner tr" viewBox="0 0 48 48" fill="none">
+    <path d="M4 44 L4 4 L44 4" stroke="#C9A84C" stroke-width="1" stroke-linecap="round"/>
+    <circle cx="4" cy="4" r="2" fill="#C9A84C" opacity="0.6"/>
+    <path d="M4 20 L20 4" stroke="#C9A84C" stroke-width="0.5" opacity="0.4"/>
+  </svg>
+  <svg class="corner bl" viewBox="0 0 48 48" fill="none">
+    <path d="M4 44 L4 4 L44 4" stroke="#C9A84C" stroke-width="1" stroke-linecap="round"/>
+    <circle cx="4" cy="4" r="2" fill="#C9A84C" opacity="0.6"/>
+    <path d="M4 20 L20 4" stroke="#C9A84C" stroke-width="0.5" opacity="0.4"/>
+  </svg>
+  <svg class="corner br" viewBox="0 0 48 48" fill="none">
+    <path d="M4 44 L4 4 L44 4" stroke="#C9A84C" stroke-width="1" stroke-linecap="round"/>
+    <circle cx="4" cy="4" r="2" fill="#C9A84C" opacity="0.6"/>
+    <path d="M4 20 L20 4" stroke="#C9A84C" stroke-width="0.5" opacity="0.4"/>
+  </svg>
+
+  <!-- Scene -->
+  <div class="scene">
+
+    <!-- Word stage -->
+    <div class="word-stage" id="wordStage">
+      <div class="arabic-word" id="arabicWord">إحسان</div>
+
+      <!-- White curtain (hides the word, slides away) -->
+      <div class="word-curtain" id="curtain"></div>
+
+      <!-- Ink trace line -->
+      <div class="ink-trace"></div>
+
+      <!-- Quill SVG tip -->
+      <div class="quill-tip" id="quillTip">
+        <svg width="32" height="48" viewBox="0 0 32 48" fill="none">
+          <!-- Quill feather -->
+          <path d="M16 2 C24 6, 30 14, 28 24 C26 32, 20 38, 16 44 C12 38, 6 32, 4 24 C2 14, 8 6, 16 2Z"
+                fill="var(--olive-pale)" stroke="var(--olive-light)" stroke-width="0.8"/>
+          <path d="M16 2 C16 2, 18 16, 16 44" stroke="var(--olive-mid)" stroke-width="0.6" stroke-linecap="round"/>
+          <path d="M16 8 C20 10, 24 14, 24 20" stroke="var(--olive-light)" stroke-width="0.5" opacity="0.6"/>
+          <path d="M16 12 C12 14, 9 18, 9 22" stroke="var(--olive-light)" stroke-width="0.5" opacity="0.6"/>
+          <!-- Ink tip -->
+          <ellipse cx="16" cy="44" rx="1.5" ry="2" fill="var(--olive-dark)" opacity="0.8"/>
+          <!-- Small ink drop -->
+          <circle cx="16" cy="47" r="1" fill="var(--olive-dark)" opacity="0.5"/>
+        </svg>
+      </div>
+
+      <!-- Ink drop on lift -->
+      <div class="ink-drop"></div>
+    </div>
+
+    <!-- Subtitle (Arabic + concept) -->
+    <div class="subtitle" id="subtitle">الإحسان &nbsp;·&nbsp; L'Excellence</div>
+
+    <!-- French verse -->
+    <div class="verse-text" id="verseText">« Allah aime ceux qui font preuve d'excellence »</div>
+    <div class="verse-ref" id="verseRef">Coran 3:134</div>
+
+    <!-- Gold divider -->
+    <div class="divider" id="divider">
+      <div class="divider-line"></div>
+      <div class="divider-gem"></div>
+      <div class="divider-line"></div>
+    </div>
+
+    <!-- Start -->
+    <div class="start-wrap" id="startWrap">
+      <a class="start-btn" href="landing.html" onclick="leaveScene(event)">
+        start
+        <span class="start-arrow">→</span>
+      </a>
+    </div>
+
+  </div>
+
+  <script>
+    // Sequence timings (ms)
+    const T_START_ANIM    = 600;   // when curtain starts moving
+    const T_ANIM_DURATION = 2800;  // curtain animation duration
+    const T_SUBTITLE      = T_START_ANIM + T_ANIM_DURATION + 200;
+    const T_VERSE         = T_SUBTITLE + 350;
+    const T_DIVIDER       = T_VERSE + 400;
+    const T_START_BTN     = T_DIVIDER + 300;
+    const T_CORNERS       = T_DIVIDER;
+
+    const wordStage  = document.getElementById('wordStage');
+    const subtitle   = document.getElementById('subtitle');
+    const verseText  = document.getElementById('verseText');
+    const verseRef   = document.getElementById('verseRef');
+    const divider    = document.getElementById('divider');
+    const startWrap  = document.getElementById('startWrap');
+
+    // Step 1: start curtain animation
+    setTimeout(() => {
+      wordStage.classList.add('animating');
+    }, T_START_ANIM);
+
+    // Step 2: curtain done → ink drop + settle
+    setTimeout(() => {
+      wordStage.classList.remove('animating');
+      wordStage.classList.add('done');
+    }, T_START_ANIM + T_ANIM_DURATION);
+
+    // Step 3: subtitle
+    setTimeout(() => {
+      subtitle.classList.add('visible');
+    }, T_SUBTITLE);
+
+    // Step 3b: French verse
+    setTimeout(() => {
+      verseText.classList.add('visible');
+      verseRef.classList.add('visible');
+    }, T_VERSE);
+
+    // Step 4: divider
+    setTimeout(() => {
+      divider.classList.add('visible');
+    }, T_DIVIDER);
+
+    // Step 5: start button
+    setTimeout(() => {
+      startWrap.classList.add('visible');
+    }, T_START_BTN);
+
+    // Leave animation
+    function leaveScene(e) {
+      e.preventDefault();
+      document.body.classList.add('leaving');
+      setTimeout(() => { window.location.href = 'landing.html'; }, 680);
+    }
+
+    // Allow spacebar / Enter to start too
+    document.addEventListener('keydown', (e) => {
+      if ((e.key === 'Enter' || e.key === ' ') && startWrap.classList.contains('visible')) {
+        document.body.classList.add('leaving');
+        setTimeout(() => { window.location.href = 'landing.html'; }, 680);
+      }
+    });
+  </script>
+</body>
+</html>
